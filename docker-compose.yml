@@ -1,0 +1,75 @@
+version: '3'
+services:
+  backend:
+    env_file:
+      - .env
+    build: ./backend
+    environment:
+      - PORT=5000
+    command: flask run --host=0.0.0.0 --reload
+    volumes:
+      - ./backend:/app
+    ports:
+      - "5000:5000"
+    networks:
+      - boilerplate-network
+    depends_on:
+      - mongo
+
+  frontend:
+    env_file:
+      - .env
+    build: ./frontend
+    environment:
+      - PORT=11000
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "11000:11000"
+    networks:
+      - boilerplate-network
+
+  storybook:
+    build: ./frontend
+    command: sh -c "npm install && npm run storybook"
+    environment:
+      - PORT=13000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "13000:13000"
+    networks:
+      - boilerplate-network
+
+  mongo:
+    build: ./mongo
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - boilerplate-network
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+  mongo-express:
+    image: mongo-express
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+    ports:
+      - "8081:8081"
+    networks:
+      - boilerplate-network
+    depends_on:
+      - mongo
+
+networks:
+  boilerplate-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
